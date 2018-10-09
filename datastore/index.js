@@ -3,7 +3,7 @@ const path = require('path');
 const _ = require('underscore');
 const counter = require('./counter');
 
-var items = {};
+// var items = {};
 
 // Public API - Fix these CRUD functions ///////////////////////////////////////
 
@@ -13,10 +13,11 @@ exports.create = (text, callback) => {
   // callback(null, { id, text });
 
   counter.getNextUniqueId((err, id) => {
-    fs.writeFile(`${id}.txt`, text, (err) => {
+    fs.writeFile(`${exports.dataDir}/${id}.txt`, text, (err) => {
       if (err) {
         throw err;
       } else {
+        console.log({ id, text });
         callback(null, { id, text });
       }
     });
@@ -26,29 +27,48 @@ exports.create = (text, callback) => {
 
 exports.readAll = (callback) => {
   var data = [];
-  _.each(items, (text, id) => {
-    data.push({ id, text });
+  // data will have objects {id: id, text: id}
+  fs.readdir(exports.dataDir, (err, files) => {
+    // each item in files array is the file name
+    files.forEach((fileName) => {
+      fileName = fileName.slice(0, 5);
+      data.push({id: fileName, text: fileName});
+    });
+    console.log('data', data);
+    callback(null, data);
   });
-  callback(null, data);
+    
 };
 
 exports.readOne = (id, callback) => {
-  var text = items[id];
-  if (!text) {
-    callback(new Error(`No item with id: ${id}`));
-  } else {
-    callback(null, { id, text });
-  }
+  
+  fs.readFile(`${exports.dataDir}/${id}.txt`, 'utf8', (err, fileData) => {
+    if (err) {
+      callback(new Error(`No item with id: ${id}`));
+    } else {
+      callback(null, {'id': id, 'text': fileData});
+    }
+  });
+  
 };
 
 exports.update = (id, text, callback) => {
-  var item = items[id];
-  if (!item) {
-    callback(new Error(`No item with id: ${id}`));
-  } else {
-    items[id] = text;
-    callback(null, { id, text });
-  }
+  
+  fs.writeFile(`${exports.dataDir}/${id}.txt`, text, (err) => {
+    if (err) {
+      callback(new Error(`No item with id: ${id}`));
+    } else {
+      callback(null, {id, text});
+    }
+  });
+  
+  // var item = items[id];
+  // if (!item) {
+  //   callback(new Error(`No item with id: ${id}`));
+  // } else {
+  //   items[id] = text;
+  //   callback(null, { id, text });
+  // }
 };
 
 exports.delete = (id, callback) => {

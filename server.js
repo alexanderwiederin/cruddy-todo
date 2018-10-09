@@ -31,8 +31,8 @@ app.post('/todo', (req, res) => {
 
 // Read all (cRud) -- collection route
 app.get('/todo', (req, res) => {
-  debugger;
   Todo.readAll((err, todos) => {
+    console.log('todos', todos);
     if (err) {
       res.sendStatus(400);
     } else {
