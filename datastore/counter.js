@@ -45,15 +45,15 @@ exports.getNextUniqueId = (callback) => {
   // return zeroPaddedNumber(counter);
   
   readCounter((err, fileData) => {
-    console.log('fileData', fileData);
+
     counter = fileData;
     counter++;
-    console.log('counter: ', counter);
     
     writeCounter(counter, (err, counterString) => {
       callback(null, counterString);
       
     }); 
+    
   });
   
 };
