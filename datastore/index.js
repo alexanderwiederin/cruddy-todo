@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const _ = require('underscore');
 const counter = require('./counter');
+var Promise = require('bluebird');
 
 // var items = {};
 
@@ -28,16 +29,21 @@ exports.create = (text, callback) => {
 exports.readAll = (callback) => {
   var data = [];
   // data will have objects {id: id, text: id}
+  var readFileAsync = Promise.promisify(fs.readFile);
+  
   fs.readdir(exports.dataDir, (err, files) => {
-    // each item in files array is the file name
-    files.forEach((fileName) => {
-      fileName = fileName.slice(0, 5);
-      data.push({id: fileName, text: fileName});
+    data = files.map((fileName) => {
+      return readFileAsync(path.join(exports.dataDir, fileName), 'utf8')
+        .then((fileContent) => {
+          var id = fileName.slice(0, 5);
+          var todoObj = {id, text: fileContent};
+          return todoObj;
+        });
     });
-    console.log('data', data);
-    callback(null, data);
+    Promise.all(data)
+      .then((data) => callback(null, data));
   });
-    
+  
 };
 
 exports.readOne = (id, callback) => {
@@ -54,13 +60,21 @@ exports.readOne = (id, callback) => {
 
 exports.update = (id, text, callback) => {
   
-  fs.writeFile(`${exports.dataDir}/${id}.txt`, text, (err) => {
+  fs.readFile(`${exports.dataDir}/${id}.txt`, 'utf8', (err) => {
     if (err) {
       callback(new Error(`No item with id: ${id}`));
     } else {
-      callback(null, {id, text});
+      fs.writeFile(`${exports.dataDir}/${id}.txt`, text, (err) => {
+        if (err) {
+          callback(new Error(`No item with id: ${id}`));
+        } else {
+          callback(null, {id, text});
+        }
+      });
     }
   });
+  
+  
   
   // var item = items[id];
   // if (!item) {
@@ -72,14 +86,18 @@ exports.update = (id, text, callback) => {
 };
 
 exports.delete = (id, callback) => {
-  var item = items[id];
-  delete items[id];
-  if (!item) {
-    // report an error if item not found
-    callback(new Error(`No item with id: ${id}`));
-  } else {
-    callback();
-  }
+  
+  fs.unlink(`${exports.dataDir}/${id}.txt`, (err) => {
+    console.log('delete err: ', err);
+    
+    if (err) {
+      callback(new Error(`No item with id: ${id}`));
+    } else {
+      callback();
+    }
+    
+  });
+  
 };
 
 // Config+Initialization code -- DO NOT MODIFY /////////////////////////////////
